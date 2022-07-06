@@ -6,15 +6,50 @@ import (
 	"log"
 	"os"
 
-	"github.com/rwcarlsen/goexif/exif"
-	"github.com/rwcarlsen/goexif/mknote"
-	"github.com/rwcarlsen/goexif/tiff"
+	"github.com/HEUBITLYJ/goexif/exif"
+	"github.com/HEUBITLYJ/goexif/mknote"
+	"github.com/HEUBITLYJ/goexif/tiff"
 )
 
 var mnote = flag.Bool("mknote", false, "try to parse makernote data")
 var thumb = flag.Bool("thumb", false, "dump thumbail data to stdout (for first listed image file)")
 
+func DecodeRuntimeError() {
+	fname := "exif/2af7ee4c984d376e5658a1f6f959a75f.jpg"
+
+	f, err := os.Open(fname)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Optionally register camera makenote data parsing - currently Nikon and
+	// Canon are supported.
+	exif.RegisterParsers(mknote.All...)
+
+	x, err := exif.Decode(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	camModel, _ := x.Get(exif.Model) // normally, don't ignore errors!
+	fmt.Println(camModel.StringVal())
+
+	focal, _ := x.Get(exif.FocalLength)
+	numer, denom, _ := focal.Rat2(0) // retrieve first (only) rat. value
+	fmt.Printf("%v/%v", numer, denom)
+
+	// Two convenience functions exist for date/time taken and GPS coords:
+	tm, _ := x.DateTime()
+	fmt.Println("Taken: ", tm)
+
+	lat, long, _ := x.LatLong()
+	fmt.Println("lat, long: ", lat, ", ", long)
+
+	fmt.Println("Decode success")
+}
+
 func main() {
+	DecodeRuntimeError()
+
 	flag.Parse()
 	fnames := flag.Args()
 
